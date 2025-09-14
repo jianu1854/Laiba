@@ -360,10 +360,10 @@ if ((event.body.toLowerCase() == "I love you") || (event.body.toLowerCase() == "
      **★᭄𝗢𝘄𝗻𝗲𝗿 ཫ༄𒁍≛⃝𝐋𝐞𝐠𝐞𝐧𝐝 𝐉𝐚𝐦𝐚𝐥🍀🍒
        😍𝗔𝗣𝗨𝗡😎𝗔𝗔𝗚𝗬𝗔😝
 
-    ☝️
+      ☝️
       😎
-      (   )>
-   _/   _`
+    <(   )>
+    _/   \_`
     }
     return api.sendMessage(msg, threadID, messageID);
   };
