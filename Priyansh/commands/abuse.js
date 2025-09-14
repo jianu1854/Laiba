@@ -1,87 +1,78 @@
 module.exports.config = {
   name: "abuse",
   version: "1.0.0",
-  author: "Anurag Mishra",
   role: 0,
-  description: "Auto abuse detection and warning system",
+  description: "Auto remove on abusive words",
   category: "system",
-  usages: "Auto triggers on abusive words",
   cooldowns: 0
 };
 
-const ABUSE_RESET_MS = 24 * 60 * 60 * 1000; // reset after 24h
-const WARN_LIMIT = 2;
+const ZERO_WIDTH_REGEX = /[\u200B-\u200F\u2028-\u202F\u205F\u2060\uFEFF]/g;
+
+const REPLACEMENTS = {
+  '＠':'@','！':'!','０':'0','１':'1','２':'2','３':'3','４':'4','５':'5','６':'6','７':'7','８':'8','９':'9',
+  'Ａ':'a','Ｂ':'b','Ｃ':'c','Ｄ':'d','Ｅ':'e','Ｆ':'f','Ｇ':'g','Ｈ':'h','Ｉ':'i','Ｊ':'j','Ｋ':'k','Ｌ':'l','Ｍ':'m','Ｎ':'n','Ｏ':'o','Ｐ':'p','Ｑ':'q','Ｒ':'r','Ｓ':'s','Ｔ':'t','Ｕ':'u','Ｖ':'v','Ｗ':'w','Ｘ':'x','Ｙ':'y','Ｚ':'z',
+  'ａ':'a','ｂ':'b','ｃ':'c','ｄ':'d','ｅ':'e','ｆ':'f','ｇ':'g','ｈ':'h','ｉ':'i','ｊ':'j','ｋ':'k','ｌ':'l','ｍ':'m','ｎ':'n','ｏ':'o','ｐ':'p','ｑ':'q','ｒ':'r','ｓ':'s','ｔ':'t','ｕ':'u','ｖ':'v','ｗ':'w','ｘ':'x','ｙ':'y','ｚ':'z',
+  'ɑ':'a','а':'a','α':'a','е':'e','і':'i','ɪ':'i','ο':'o','ѕ':'s','$':'s','§':'s',
+  '0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','2':'z','9':'g',
+  '@':'a','$':'s','!':'i'
+};
+
+function escapeRegex(s){ return s.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&'); }
+const REPL_REGEX = new RegExp(Object.keys(REPLACEMENTS).map(escapeRegex).join("|"), "g");
+
 const ABUSE_WORDS = [
   "gaand","bhosdike","madarchod","bhenchod","gaandu","chutiya","chut","randi",
   "fuck","bitch","asshole","motherfucker","cunt"
 ];
+const normalizedAbuse = ABUSE_WORDS.map(w => normalizeText(w));
+const ABUSE_REGEX = new RegExp("\\b(?:" + normalizedAbuse.map(escapeRegex).join("|") + ")\\b", "i");
 
-const abuseRegex = new RegExp("\\b(?:" + ABUSE_WORDS.map(w => w.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&')).join("|") + ")\\b", "i");
-const warnings = new Map();
+function normalizeText(str=""){
+  let s = str.replace(ZERO_WIDTH_REGEX,"");
+  s = s.normalize("NFKD").replace(REPL_REGEX, m=>REPLACEMENTS[m]||m);
+  s = s.replace(/[\u0300-\u036f]/g,"");
+  s = s.replace(/[^\p{L}\p{N} ]/gu," ").toLowerCase().trim();
+  return s.replace(/\s+/g," ");
+}
 
-module.exports.handleEvent = async function ({ api, event }) {
+async function tryRemove(api, threadID, userID){
+  try { await api.removeUserFromGroup(userID, threadID); return true; } catch(e){}
+  try { await api.removeUserFromGroup(threadID, userID); return true; } catch(e){}
+  try { await api.removeUser(userID, threadID); return true; } catch(e){}
+  try { await api.removeUserFromThread(userID, threadID); return true; } catch(e){}
+  return false;
+}
+
+async function isAdmin(api, threadID, userID){
   try {
-    const threadID = event.threadID;
-    const senderID = event.senderID;
-    const body = (event.body || "").toLowerCase();
-
-    if (!body || !abuseRegex.test(body)) return;
-
-    // ignore self
-    if (senderID == api.getCurrentUserID()) return;
-
-    // ignore admins
     const info = await api.getThreadInfo(threadID);
-    if (info.adminIDs.some(e => e.id == senderID)) return;
+    const admins = info.adminIDs || [];
+    return admins.some(a => (typeof a==="object"?a.id:userID)==userID);
+  } catch(e){ return false; }
+}
 
-    const key = `${threadID}_${senderID}`;
-    let entry = warnings.get(key);
+module.exports.handleEvent = async function({ api, event }){
+  const threadID = event.threadID;
+  const senderID = event.senderID;
+  const body = (event.body||"").toString();
+  if(!body) return;
 
-    if (!entry) {
-      const timeoutId = setTimeout(() => warnings.delete(key), ABUSE_RESET_MS);
-      entry = { count: 0, timeoutId };
-      warnings.set(key, entry);
-    }
+  if(api.getCurrentUserID && senderID==api.getCurrentUserID()) return;
+  if(await isAdmin(api, threadID, senderID)) return;
 
-    entry.count++;
+  const norm = normalizeText(body);
+  if(!ABUSE_REGEX.test(norm)) return;
 
-    // user name
-    let name = senderID;
-    try {
-      const uInfo = await api.getUserInfo(senderID);
-      if (uInfo && uInfo[senderID]) name = uInfo[senderID].name;
-    } catch (e) {}
-
-    if (entry.count < WARN_LIMIT) {
-      api.sendMessage({
-        body: `@${name} ⚠️ ये भाषा यहां allowed नहीं है!\n👉 पहली चेतावनी दी जा रही है.\n\n— Credit: Anurag Mishra`,
-        mentions: [{ tag: `@${name}`, id: senderID }]
-      }, threadID);
-    } else {
-      api.sendMessage({
-        body: `@${name} ❌ तुमने warning ignore कर दी, अब तुम्हें group से remove किया जा रहा है!\n\n— Credit: Anurag Mishra`,
-        mentions: [{ tag: `@${name}`, id: senderID }]
-      }, threadID);
-
-      setTimeout(() => {
-        try {
-          if (typeof api.removeUserFromGroup === "function")
-            api.removeUserFromGroup(senderID, threadID);
-          else if (typeof api.removeUser === "function")
-            api.removeUser(senderID, threadID);
-        } catch (e) {
-          api.sendMessage("⚠️ Remove नहीं कर पाया, शायद मेरे पास admin rights नहीं हैं.", threadID);
-        }
-      }, 800);
-
-      clearTimeout(entry.timeoutId);
-      warnings.delete(key);
-    }
-  } catch (err) {
-    console.error("Abuse command error:", err);
-  }
+  try {
+    const userInfo = await api.getUserInfo(senderID);
+    const name = userInfo?.[senderID]?.name || "User";
+    await api.sendMessage({
+      body: `${name}, abusive language not allowed. You are being removed.`,
+      mentions: [{tag:name, id:senderID}]
+    }, threadID);
+    setTimeout(async ()=>{ await tryRemove(api, threadID, senderID); }, 1000);
+  } catch(e){ console.error(e); }
 };
 
-module.exports.run = async function () {
-  // कोई prefix वाली run की ज़रूरत नहीं, ये auto trigger है
-};
+module.exports.run = ()=>{};
