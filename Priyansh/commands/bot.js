@@ -52,7 +52,7 @@ module.exports.handleEvent = async function({ api, event, args, Threads, Users }
      return api.sendMessage("मैं हूं ना जानेमन बोलो किया हुआ 🙂🤟", threadID);
    };
   
-  if ((event.body.toLowerCase() == "Jamalu") || (event.body.toLowerCase() == "Jamal")) {
+  if ((event.body.toLowerCase() == "Jamal") || (event.body.toLowerCase() == "jamalu")) {
      return api.sendMessage("मेरा बॉस जमाल पठान बीजी है अपनी गर्लफ्रेंड अलीशा के साथ मुझे बताओ किया काम है। मैं बॉस को बता दूंगा कॉल करके 🙂✌️ ", threadID);
    };
 
