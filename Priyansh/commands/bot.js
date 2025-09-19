@@ -33,7 +33,7 @@ module.exports.handleEvent = async function({ api, event, args, Threads, Users }
    };
 
    if ((event.body.toLowerCase() == "taklu") || (event.body.toLowerCase() == "taklubabu")) {
-     return api.sendMessage("मेरी जान पहले [.] 👈 ये लगाओ फिर लिखो taklu 🙂🤟", threadID);
+     return api.sendMessage("मेरी जान पहले [.] 👈 ये लगाओ फिर लिखो टकलू 🙂🤟", threadID);
    };
   
    if ((event.body.toLowerCase() == "hi") || (event.body.toLowerCase() == "hello") ||(event.body.toLowerCase() == "hlw") || (event.body.toLowerCase() == "helo")) {
@@ -52,7 +52,7 @@ module.exports.handleEvent = async function({ api, event, args, Threads, Users }
      return api.sendMessage("मैं हूं ना जानेमन बोलो किया हुआ 🙂🤟", threadID);
    };
   
-  if ((event.body.toLowerCase() == "@ɭɭ-ʬ Jʌɱʌɭ Pʌʜʌŋ ʬ-ɭɭ") || (event.body.toLowerCase() == "Jamal")) {
+  if ((event.body.toLowerCase() == "Jamal") || (event.body.toLowerCase() == "jamlu")) {
      return api.sendMessage("मेरा बॉस जमाल पठान बीजी है अपनी गर्लफ्रेंड अलीशा के साथ मुझे बताओ किया काम है। मैं बॉस को बता दूंगा कॉल करके 🙂✌️ ", threadID);
    };
 
@@ -81,7 +81,7 @@ module.exports.handleEvent = async function({ api, event, args, Threads, Users }
    };
 
    if ((event.body.toLowerCase() == "boss hu tera") || (event.body.toLowerCase() == "Boss hu tera") || (event.body.toLowerCase() == "boss hu jamal pathan") || (event.body.toLowerCase() == "boss ki bezti kr raha takle")) {
-     return api.sendMessage("सॉरी बॉस माफ कर दो अब नहीं करूंगा 🥺🥺🥺🙏", threadID);
+     return api.sendMessage("सॉरी बॉस माफ कर दो अब नहीं करूंगा गलती हो गयी 🥺🥺🥺🙏", threadID);
    };
 
    if ((event.body.toLowerCase() == "gand") || (event.body.toLowerCase() == "gandu") || (event.body.toLowerCase() == "lund") || (event.body.toLowerCase() == "land")) {
